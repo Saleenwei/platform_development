@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>一键生成游戏名称工具（AI版）</title>
+<style>
+  :root {
+    --primary: #4f46e5;
+    --primary-hover: #4338ca;
+    --danger: #dc2626;
+    --success: #16a34a;
+    --warn: #d97706;
+    --bg: #f8fafc;
+    --card: #ffffff;
+    --border: #e2e8f0;
+    --text: #1e293b;
+    --muted: #64748b;
+    --radius: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    padding: 24px 16px 60px;
+  }
+
+  h1 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 4px;
+    color: var(--primary);
+  }
+
+  .subtitle {
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.9rem;
+    margin-bottom: 28px;
+  }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.05);
+  }
+
+  .card-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .notice {
+    background: #fef9c3;
+    border: 1px solid #fde047;
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    font-size: 0.85rem;
+    color: #713f12;
+    margin-bottom: 20px;
+  }
+
+  .notice strong { color: #92400e; }
+
+  .guide {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    font-size: 0.875rem;
+    color: #1e3a8a;
+    margin-bottom: 20px;
+  }
+
+  .guide h3 { font-size: 0.95rem; margin-bottom: 8px; }
+  .guide ol { padding-left: 20px; }
+  .guide li { margin-bottom: 4px; }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .form-group.full { grid-column: 1 / -1; }
+
+  label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  label .hint {
+    font-weight: 400;
+    color: var(--muted);
+    font-size: 0.8rem;
+  }
+
+  input, select, textarea {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 0.9rem;
+    color: var(--text);
+    background: #fff;
+    width: 100%;
+    transition: border-color .15s;
+    font-family: inherit;
+  }
+
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(79,70,229,.1);
+  }
+
+  textarea { resize: vertical; min-height: 80px; }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 24px;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s, opacity .15s;
+    font-family: inherit;
+  }
+
+  .btn-primary {
+    background: var(--primary);
+    color: #fff;
+    width: 100%;
+    margin-top: 16px;
+    font-size: 1rem;
+    padding: 12px;
+  }
+
+  .btn-primary:hover:not(:disabled) { background: var(--primary-hover); }
+  .btn-primary:disabled { opacity: .6; cursor: not-allowed; }
+
+  .btn-sm {
+    padding: 5px 14px;
+    font-size: 0.82rem;
+    background: #f1f5f9;
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+
+  .btn-sm:hover { background: #e2e8f0; }
+
+  /* Spinner */
+  .spinner {
+    width: 18px; height: 18px;
+    border: 2px solid rgba(255,255,255,.4);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    display: none;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Status messages */
+  #statusMsg {
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 0.875rem;
+    margin-top: 14px;
+    display: none;
+  }
+
+  #statusMsg.error { background: #fef2f2; color: var(--danger); border: 1px solid #fecaca; }
+  #statusMsg.success { background: #f0fdf4; color: var(--success); border: 1px solid #bbf7d0; }
+  #statusMsg.info { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+
+  /* Results table */
+  .table-wrap { overflow-x: auto; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+
+  th {
+    background: #f1f5f9;
+    padding: 10px 12px;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid var(--border);
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #f8fafc; }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .badge-pass { background: #dcfce7; color: #15803d; }
+  .badge-fail { background: #fee2e2; color: #b91c1c; }
+  .badge-warn { background: #fef9c3; color: #92400e; }
+  .badge-pending { background: #f1f5f9; color: #64748b; }
+
+  .tag-name {
+    font-weight: 600;
+    font-size: 0.92rem;
+    color: var(--primary);
+  }
+
+  .copy-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    color: var(--muted);
+    transition: background .1s;
+  }
+
+  .copy-btn:hover { background: #f1f5f9; color: var(--text); }
+
+  /* Compliance checklist */
+  .checklist-table th { font-size: 0.82rem; }
+  .checklist-table td { font-size: 0.82rem; }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted);
+  }
+
+  .empty-state .icon { font-size: 2.5rem; margin-bottom: 8px; }
+
+  /* Section divider */
+  .section-label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  /* Accordion for compliance */
+  details > summary {
+    cursor: pointer;
+    user-select: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+    padding: 10px 0;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  details > summary::before {
+    content: "▶";
+    font-size: 0.7rem;
+    transition: transform .2s;
+    flex-shrink: 0;
+  }
+
+  details[open] > summary::before { transform: rotate(90deg); }
+
+  details > summary::-webkit-details-marker { display: none; }
+
+  details .inner { padding-top: 10px; }
+
+  @media (max-width: 600px) {
+    .form-grid { grid-template-columns: 1fr; }
+    h1 { font-size: 1.3rem; }
+  }
+
+  .max-width { max-width: 960px; margin: 0 auto; }
+</style>
+</head>
+<body>
+<div class="max-width">
+
+  <h1>🎮 一键生成游戏名称工具</h1>
+  <p class="subtitle">基于 OpenAI API · 符合 Google Play ASO 合规要求</p>
+
+  <!-- Usage Guide -->
+  <div class="guide">
+    <h3>📖 使用说明</h3>
+    <ol>
+      <li>在下方输入您的 OpenAI API Key（仅存储在本地浏览器，不会上传到任何服务器）。</li>
+      <li>填写游戏品类词、题材词、风格/情感，选择生成数量。</li>
+      <li>点击「生成游戏名称」，AI 将根据 Google Play 合规规则生成候选名称。</li>
+      <li>结果表格中已自动完成基础合规检查；标记"待核验"的项目需人工在 Google Play 和 WIPO 完成查重与商标检索。</li>
+    </ol>
+    <div style="margin-top:8px; font-size:0.82rem; color:#1e40af;">
+      💡 <strong>本工具可直接双击打开 HTML 文件在浏览器中运行。</strong>
+      如遇浏览器安全策略阻止请求，请使用本地静态服务器启动，例如：
+      <code style="background:#dbeafe;padding:1px 6px;border-radius:4px;">python3 -m http.server 8080</code>，然后访问 <code style="background:#dbeafe;padding:1px 6px;border-radius:4px;">http://localhost:8080</code>。
+    </div>
+  </div>
+
+  <!-- API Key Warning -->
+  <div class="notice">
+    🔒 <strong>安全提示：</strong>API Key 仅保存在您的本地浏览器中，不会发送到除 OpenAI 官方接口以外的任何服务器。
+    请勿在公共设备上使用此工具，使用完毕后可清除输入框内容。
+  </div>
+
+  <!-- Input Form -->
+  <div class="card">
+    <div class="card-title">⚙️ 配置与输入</div>
+
+    <div class="section-label">OpenAI 设置</div>
+    <div class="form-grid" style="margin-bottom:20px;">
+      <div class="form-group full">
+        <label for="apiKey">
+          API Key <span class="hint">（password 类型，仅本地浏览器使用）</span>
+        </label>
+        <input type="password" id="apiKey" placeholder="sk-..." autocomplete="off" spellcheck="false">
+      </div>
+      <div class="form-group">
+        <label for="model">模型 <span class="hint">（默认 gpt-4o-mini）</span></label>
+        <select id="model">
+          <option value="gpt-4o-mini" selected>gpt-4o-mini（快速 · 低成本）</option>
+          <option value="gpt-4o">gpt-4o（高质量）</option>
+          <option value="gpt-4-turbo">gpt-4-turbo</option>
+          <option value="gpt-3.5-turbo">gpt-3.5-turbo（最低成本）</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="count">生成数量</label>
+        <select id="count">
+          <option value="5">5 个</option>
+          <option value="10" selected>10 个</option>
+          <option value="15">15 个</option>
+          <option value="20">20 个</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="section-label">游戏信息</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="gameplay">
+          品类词 / 核心玩法 <span class="hint">（必填）</span>
+        </label>
+        <input type="text" id="gameplay" placeholder="例：Casino Slots, Puzzle, RPG, Tycoon">
+      </div>
+      <div class="form-group">
+        <label for="theme">
+          题材词 / 视觉故事 <span class="hint">（必填）</span>
+        </label>
+        <input type="text" id="theme" placeholder="例：马, 王朝, 玉, 龙, 水墨风格">
+      </div>
+      <div class="form-group">
+        <label for="style">
+          风格 / 情感 <span class="hint">（选填）</span>
+        </label>
+        <input type="text" id="style" placeholder="例：Mystic, Royal, Simple, Rapid">
+      </div>
+      <div class="form-group">
+        <label for="extra">
+          其他补充说明 <span class="hint">（选填）</span>
+        </label>
+        <input type="text" id="extra" placeholder="例：面向东南亚市场，避免使用过于复杂的词汇">
+      </div>
+    </div>
+
+    <button class="btn btn-primary" id="generateBtn" onclick="generateNames()">
+      <span class="spinner" id="spinner"></span>
+      <span id="btnText">✨ 生成游戏名称</span>
+    </button>
+
+    <div id="statusMsg"></div>
+  </div>
+
+  <!-- Results -->
+  <div class="card" id="resultsCard" style="display:none;">
+    <div class="card-title" style="justify-content:space-between;">
+      <span>📋 生成结果</span>
+      <button class="btn btn-sm" onclick="copyTable()">复制表格</button>
+    </div>
+    <div class="table-wrap">
+      <table id="resultsTable">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>候选名称</th>
+            <th>含义说明</th>
+            <th>字符数</th>
+            <th>长度合规<br><small style="font-weight:400">≤30字符</small></th>
+            <th>违禁词<br><small style="font-weight:400">促销/博彩</small></th>
+            <th>诱导词<br><small style="font-weight:400">Hot/Fire等</small></th>
+            <th>格式检查<br><small style="font-weight:400">大写/标点</small></th>
+            <th>IP/品牌风险</th>
+            <th>Play 查重</th>
+            <th>商标检索</th>
+            <th>结论</th>
+          </tr>
+        </thead>
+        <tbody id="resultsBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Compliance Checklist -->
+  <div class="card">
+    <details>
+      <summary>👮 合规 Checklist 说明</summary>
+      <div class="inner">
+        <p style="font-size:0.85rem; color:var(--muted); margin-bottom:12px;">
+          以下检查项中，<strong>标注⚠️的为必须通过项</strong>，任一不通过即判定标题不可用。
+        </p>
+        <div class="table-wrap">
+          <table class="checklist-table">
+            <thead>
+              <tr>
+                <th>序号</th>
+                <th>检查项</th>
+                <th>判定标准</th>
+                <th>必须项</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>1</td><td>字符长度</td><td>包含空格在内 ≤ 30 字符</td><td>⚠️ 是</td></tr>
+              <tr><td>2</td><td>显示友好度</td><td>建议控制在 15–20 字符内</td><td>优先，非强制</td></tr>
+              <tr><td>3</td><td>首字母格式</td><td>首字母大写，不允许全大写</td><td>⚠️ 是</td></tr>
+              <tr><td>4</td><td>特殊字符</td><td>不允许 Emoji、连续标点 !!、??、*** 等</td><td>⚠️ 是</td></tr>
+              <tr><td>5</td><td>短破折号</td><td>尽量不使用 -，如使用需人工确认</td><td>建议</td></tr>
+              <tr><td>6</td><td>促销词检查</td><td>禁止 Best、Top、New、Free、Sale、NoAds</td><td>⚠️ 是</td></tr>
+              <tr><td>7</td><td>诱导词检查</td><td>禁止 Hot、Fire、Download、Update</td><td>⚠️ 是</td></tr>
+              <tr><td>8</td><td>博彩高风险词</td><td>禁止 Win Money、Cash、Bet 等</td><td>⚠️ 是</td></tr>
+              <tr><td>9</td><td>赌博误导感</td><td>不得有"赚钱、提现、现金奖励"暗示</td><td>⚠️ 是</td></tr>
+              <tr><td>10</td><td>品类清晰度</td><td>最好包含明确品类词 Slots/Puzzle/RPG/Tycoon</td><td>建议</td></tr>
+              <tr><td>11</td><td>题材识别度</td><td>应能反映视觉/故事主题</td><td>建议</td></tr>
+              <tr><td>12</td><td>易读易拼写</td><td>避免生僻词、难拼写词</td><td>建议</td></tr>
+              <tr><td>13</td><td>品牌风险</td><td>禁止使用 Disney、Marvel 等知名 IP</td><td>⚠️ 是</td></tr>
+              <tr><td>14</td><td>Play 查重</td><td>Google Play 无完全重名（需人工核验）</td><td>⚠️ 是</td></tr>
+              <tr><td>15</td><td>高相似检查</td><td>无高度近似名称（需人工核验）</td><td>⚠️ 是</td></tr>
+              <tr><td>16</td><td>商标检索</td><td>WIPO Nice 9/28/41 类无近似商标（需人工）</td><td>⚠️ 是</td></tr>
+              <tr><td>17</td><td>地区歧义</td><td>目标市场语言翻译后无负面歧义</td><td>建议</td></tr>
+              <tr><td>18</td><td>最终结论</td><td>全部关键项通过方可使用</td><td>⚠️ 是</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </details>
+  </div>
+
+  <!-- Tips -->
+  <div class="card">
+    <details>
+      <summary>💡 避坑指南 Tips</summary>
+      <div class="inner" style="font-size:0.875rem;">
+        <ul style="padding-left:20px; display:flex; flex-direction:column; gap:8px;">
+          <li><strong>宁短勿长：</strong>手机屏幕上超过 20 个字符的标题容易被截断（显示为 ...），15–20 字符看起来更像大厂产品。</li>
+          <li><strong>慎用生僻词：</strong>对于 Slot 游戏，Fortune、Gold、Spin、King 永远比复杂单词好用。</li>
+          <li><strong>本地化陷阱：</strong>如要发东南亚或拉美，把英文名放到 Google Translate 翻译成当地语言，确认无奇怪歧义。</li>
+          <li><strong>副标题策略：</strong>名字太短无法塞关键词时，使用 Google Play「短描述 Short Description」（80 字符）放关键词更安全。</li>
+          <li><strong>商标检索工具：</strong><a href="https://branddb.wipo.int/" target="_blank" rel="noopener noreferrer">WIPO Global Brand Database</a> — 输入名称中的特有名词（去掉 Slots、Game 等通用词）后检索 Nice 9/28/41 类。</li>
+        </ul>
+      </div>
+    </details>
+  </div>
+
+</div><!-- /.max-width -->
+
+<script>
+"use strict";
+
+// ─────────────────────────────────────────────────────────────
+// Compliance rule sets
+// ─────────────────────────────────────────────────────────────
+const BANNED_WORDS = [
+  "best", "top", "new", "free", "sale", "noad", "noads",
+  "win money", "cash", "bet"
+];
+
+const INDUCTIVE_WORDS = [
+  "hot", "fire", "download", "update"
+];
+
+const KNOWN_IPS = [
+  "disney", "marvel", "nintendo", "pokemon", "zelda", "mario",
+  "sonic", "pikachu", "batman", "superman", "spiderman",
+  "harry potter", "star wars", "fortnite", "minecraft"
+];
+
+// ─────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────
+
+// Escape special regex metacharacters in a string.
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// ─────────────────────────────────────────────────────────────
+// Compliance checkers
+// ─────────────────────────────────────────────────────────────
+function checkLength(name) {
+  return name.length <= 30
+    ? { pass: true, label: "通过", detail: `${name.length} 字符` }
+    : { pass: false, label: "不通过", detail: `${name.length} 字符，超出 ${name.length - 30} 字符` };
+}
+
+function checkBannedWords(name) {
+  const lower = name.toLowerCase();
+  const found = BANNED_WORDS.filter(w => {
+    // Escape metacharacters; allow multi-word phrases with flexible whitespace.
+    const escaped = escapeRegex(w).replace(/\\\s+/g, "\\s+");
+    const pattern = new RegExp("(^|\\W)" + escaped + "(\\W|$)", "i");
+    return pattern.test(lower);
+  });
+  return found.length === 0
+    ? { pass: true, label: "通过", detail: "" }
+    : { pass: false, label: "不通过", detail: `含：${found.join(", ")}` };
+}
+
+function checkInductiveWords(name) {
+  const lower = name.toLowerCase();
+  const found = INDUCTIVE_WORDS.filter(w => {
+    const pattern = new RegExp("(^|\\W)" + escapeRegex(w) + "(\\W|$)", "i");
+    return pattern.test(lower);
+  });
+  return found.length === 0
+    ? { pass: true, label: "通过", detail: "" }
+    : { pass: false, label: "不通过", detail: `含：${found.join(", ")}` };
+}
+
+function checkFormat(name) {
+  const issues = [];
+  // Non-ASCII: game names should use English/ASCII only.
+  // Romanized transliterations (e.g. "Mahjong", "Wuxia") are ASCII and are fine.
+  if (/[^\x00-\x7F]/.test(name)) issues.push("含非 ASCII 字符");
+  if (/[!]{2,}|[?]{2,}|[*]{2,}|[.]{3,}/.test(name)) issues.push("含连续标点");
+  // Emoji: cover common emoji ranges.
+  if (/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{1F300}-\u{1F9FF}]/u.test(name)) issues.push("含 Emoji");
+  // All-caps: only flag when the name contains at least two letters AND every letter is uppercase.
+  if (/[A-Za-z]/.test(name) && name.replace(/[^A-Za-z]/g, "") === name.replace(/[^A-Za-z]/g, "").toUpperCase()
+      && /[A-Z]{2,}/.test(name) && !/[a-z]/.test(name)) {
+    issues.push("全大写");
+  }
+  return issues.length === 0
+    ? { pass: true, label: "通过", detail: "" }
+    : { pass: false, label: "不通过", detail: issues.join("；") };
+}
+
+function checkIPRisk(name) {
+  const lower = name.toLowerCase();
+  // Use word-boundary-style matching to avoid false positives from substrings.
+  const found = KNOWN_IPS.filter(ip => {
+    const pattern = new RegExp("(^|\\W)" + escapeRegex(ip) + "(\\W|$)", "i");
+    return pattern.test(lower);
+  });
+  if (found.length > 0) {
+    return { pass: false, label: "疑似风险", detail: `含：${found.join(", ")}` };
+  }
+  return { pass: true, label: "初步通过", detail: "需人工确认" };
+}
+
+function runAllChecks(name) {
+  const len = checkLength(name);
+  const banned = checkBannedWords(name);
+  const inductive = checkInductiveWords(name);
+  const format = checkFormat(name);
+  const ip = checkIPRisk(name);
+
+  const autoFail = !len.pass || !banned.pass || !inductive.pass || !format.pass || !ip.pass;
+  const conclusion = autoFail ? "❌ 不可用" : "⏳ 初步可用（待人工核验）";
+
+  return { len, banned, inductive, format, ip, conclusion, autoFail };
+}
+
+// ─────────────────────────────────────────────────────────────
+// Build OpenAI prompt
+// ─────────────────────────────────────────────────────────────
+function buildPrompt(gameplay, theme, style, count, extra) {
+  return `你是一位精通 Google Play ASO（应用商店优化）和合规政策的资深游戏运营专家。
+
+任务：请为一款即将上架 Google Play 的游戏构思 ${count} 个英文名称，并以 JSON 格式返回结果。
+
+游戏背景：
+- 核心玩法：${gameplay}
+- 视觉题材：${theme}
+- 风格/情感：${style || "不限"}
+${extra ? `- 其他说明：${extra}` : ""}
+
+⚠️ 绝对限制条件（必须严格遵守）：
+1. 长度限制：包含空格必须严格控制在 30 个字符以内。
+2. 违禁词屏蔽：严禁出现 "Best", "Top", "New", "Free", "Sale", "NoAds", "Win Money", "Cash", "Bet" 等促销或高风险博彩词汇。
+3. 诱导词屏蔽：严禁出现 "Hot", "Fire", "Download", "Update" 等诱导性词汇。
+4. 格式规范：首字母大写即可，严禁全大写，严禁使用 Emoji 或连续标点（如 !!, ??）。
+5. 无版权风险：不要使用知名 IP（如 Disney, Marvel, Nintendo）或受版权保护的名词。
+6. 语言要求：必须是英文名称，可以体现中国文化但需使用英文单词或音译词。
+
+输出要求：
+请严格按照以下 JSON 格式返回，不要包含任何其他文字：
+{
+  "names": [
+    {
+      "name": "名称（英文）",
+      "meaning": "含义说明（中文，20-50字）",
+      "charCount": 字符数（数字）
+    }
+  ]
+}`;
+}
+
+// ─────────────────────────────────────────────────────────────
+// UI helpers
+// ─────────────────────────────────────────────────────────────
+function showStatus(msg, type) {
+  const el = document.getElementById("statusMsg");
+  el.textContent = msg;
+  el.className = type;
+  el.style.display = "block";
+}
+
+function hideStatus() {
+  const el = document.getElementById("statusMsg");
+  el.style.display = "none";
+}
+
+function setLoading(loading) {
+  const btn = document.getElementById("generateBtn");
+  const spinner = document.getElementById("spinner");
+  const btnText = document.getElementById("btnText");
+  btn.disabled = loading;
+  spinner.style.display = loading ? "inline-block" : "none";
+  btnText.textContent = loading ? "生成中，请稍候…" : "✨ 生成游戏名称";
+}
+
+function badgeHtml(check) {
+  if (check.pass) {
+    const cls = check.label === "初步通过" ? "badge-warn" : "badge-pass";
+    const title = check.detail ? ` title="${escHtml(check.detail)}"` : "";
+    return `<span class="badge ${cls}"${title}>${escHtml(check.label)}</span>`;
+  } else {
+    const title = check.detail ? ` title="${escHtml(check.detail)}"` : "";
+    return `<span class="badge badge-fail"${title}>${escHtml(check.label)}</span>`;
+  }
+}
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+// ─────────────────────────────────────────────────────────────
+// Render results
+// ─────────────────────────────────────────────────────────────
+function renderResults(names) {
+  const tbody = document.getElementById("resultsBody");
+  tbody.innerHTML = "";
+
+  names.forEach((item, idx) => {
+    const name = (item.name || "").trim();
+    const meaning = (item.meaning || "—").trim();
+    const charCount = name.length;
+
+    const checks = runAllChecks(name);
+
+    const conclusionClass = checks.autoFail ? "badge-fail" : "badge-warn";
+
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td>${idx + 1}</td>
+      <td>
+        <span class="tag-name">${escHtml(name)}</span>
+        <button class="copy-btn" data-copy="${escHtml(name)}">复制</button>
+      </td>
+      <td style="max-width:220px; min-width:140px;">${escHtml(meaning)}</td>
+      <td style="text-align:center;">
+        <strong>${charCount}</strong>
+        ${charCount > 20 ? '<br><small style="color:var(--warn)">建议≤20</small>' : ""}
+      </td>
+      <td>${badgeHtml(checks.len)}</td>
+      <td>${badgeHtml(checks.banned)}</td>
+      <td>${badgeHtml(checks.inductive)}</td>
+      <td>${badgeHtml(checks.format)}</td>
+      <td>${badgeHtml(checks.ip)}</td>
+      <td><span class="badge badge-pending" title="需在 Google Play 手动搜索核验">待核验</span></td>
+      <td><span class="badge badge-pending" title="需在 WIPO Global Brand Database 检索 Nice 9/28/41 类">待核验</span></td>
+      <td><span class="badge ${conclusionClass}">${escHtml(checks.conclusion)}</span></td>
+    `;
+    tbody.appendChild(row);
+  });
+
+  document.getElementById("resultsCard").style.display = "block";
+  document.getElementById("resultsCard").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+// ─────────────────────────────────────────────────────────────
+// Copy helpers
+// ─────────────────────────────────────────────────────────────
+function copyText(text) {
+  navigator.clipboard.writeText(text).then(() => {
+    showStatus(`已复制：${text}`, "success");
+    setTimeout(hideStatus, 2000);
+  }).catch(() => {
+    showStatus("复制失败，请手动选择文字复制。", "error");
+  });
+}
+
+function copyTable() {
+  const rows = [];
+  const headers = [];
+  document.querySelectorAll("#resultsTable thead th").forEach(th => headers.push(th.innerText.replace(/\n/g, " ")));
+  rows.push(headers.join("\t"));
+  document.querySelectorAll("#resultsTable tbody tr").forEach(tr => {
+    const cells = [];
+    tr.querySelectorAll("td").forEach(td => cells.push(td.innerText.replace(/\n/g, " ").trim()));
+    rows.push(cells.join("\t"));
+  });
+  navigator.clipboard.writeText(rows.join("\n")).then(() => {
+    showStatus("表格已复制到剪贴板（可粘贴到 Excel 或飞书）", "success");
+    setTimeout(hideStatus, 3000);
+  }).catch(() => {
+    showStatus("复制失败，请手动选择表格内容复制。", "error");
+  });
+}
+
+// ─────────────────────────────────────────────────────────────
+// Parse AI response – handles JSON and text fallbacks
+// ─────────────────────────────────────────────────────────────
+function parseAIResponse(text) {
+  // Try direct JSON parse
+  try {
+    const obj = JSON.parse(text);
+    if (obj && Array.isArray(obj.names)) return obj.names;
+  } catch (_) {}
+
+  // Try extracting JSON block from markdown code fences
+  const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (fenceMatch) {
+    try {
+      const obj = JSON.parse(fenceMatch[1].trim());
+      if (obj && Array.isArray(obj.names)) return obj.names;
+    } catch (_) {}
+  }
+
+  // Try extracting raw JSON object anywhere in the text
+  const jsonMatch = text.match(/\{[\s\S]*"names"\s*:\s*\[[\s\S]*?\]\s*\}/);
+  if (jsonMatch) {
+    try {
+      const obj = JSON.parse(jsonMatch[0]);
+      if (obj && Array.isArray(obj.names)) return obj.names;
+    } catch (_) {}
+  }
+
+  return null;
+}
+
+// ─────────────────────────────────────────────────────────────
+// Main: call OpenAI and render
+// ─────────────────────────────────────────────────────────────
+async function generateNames() {
+  hideStatus();
+
+  const apiKey = document.getElementById("apiKey").value.trim();
+  const model = document.getElementById("model").value;
+  const gameplay = document.getElementById("gameplay").value.trim();
+  const theme = document.getElementById("theme").value.trim();
+  const style = document.getElementById("style").value.trim();
+  const count = parseInt(document.getElementById("count").value, 10);
+  const extra = document.getElementById("extra").value.trim();
+
+  // Validation
+  if (!apiKey) {
+    showStatus("⚠️ 请输入 OpenAI API Key", "error");
+    document.getElementById("apiKey").focus();
+    return;
+  }
+  if (!apiKey.startsWith("sk-")) {
+    showStatus("⚠️ API Key 格式似乎不正确，应以 sk- 开头，请检查后重试。", "error");
+    return;
+  }
+  if (!gameplay) {
+    showStatus("⚠️ 请输入品类词 / 核心玩法", "error");
+    document.getElementById("gameplay").focus();
+    return;
+  }
+  if (!theme) {
+    showStatus("⚠️ 请输入题材词 / 视觉故事", "error");
+    document.getElementById("theme").focus();
+    return;
+  }
+
+  setLoading(true);
+  showStatus("正在调用 OpenAI API，请稍候…", "info");
+
+  const prompt = buildPrompt(gameplay, theme, style, count, extra);
+
+  try {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: model,
+        messages: [
+          {
+            role: "system",
+            content: "你是一位精通 Google Play ASO 和合规政策的资深游戏运营专家。你只返回 JSON 格式的结果，不包含任何其他文字。"
+          },
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        temperature: 0.8,
+        max_tokens: 2048
+      })
+    });
+
+    if (!response.ok) {
+      let errMsg = `API 请求失败（HTTP ${response.status}）`;
+      try {
+        const errData = await response.json();
+        if (errData.error && errData.error.message) {
+          errMsg += `：${errData.error.message}`;
+        }
+      } catch (_) {}
+
+      if (response.status === 401) errMsg = "⚠️ API Key 无效或已过期，请检查后重试。";
+      else if (response.status === 429) errMsg = "⚠️ 请求过于频繁或超出配额，请稍后再试。";
+      else if (response.status === 503) errMsg = "⚠️ OpenAI 服务暂时不可用，请稍后再试。";
+
+      showStatus(errMsg, "error");
+      return;
+    }
+
+    const data = await response.json();
+    const content = data?.choices?.[0]?.message?.content;
+
+    if (!content) {
+      showStatus("⚠️ AI 返回内容为空，请重试。", "error");
+      return;
+    }
+
+    const names = parseAIResponse(content);
+
+    if (!names || names.length === 0) {
+      showStatus(
+        "⚠️ 无法解析 AI 返回的结果格式，请重试。如果问题持续出现，请尝试换一个模型。",
+        "error"
+      );
+      console.warn("AI raw response:", content);
+      return;
+    }
+
+    renderResults(names);
+    showStatus(`✅ 已生成 ${names.length} 个候选名称，自动合规检查完成。Play 查重和商标检索需人工完成。`, "success");
+
+  } catch (err) {
+    let msg = "⚠️ 网络请求失败";
+    if (err instanceof TypeError) {
+      msg += "：无法连接到 OpenAI API。请检查网络连接，或确认浏览器未阻止跨域请求（如需要，请使用本地服务器启动此页面）。";
+    } else {
+      msg += `：${err.message}`;
+    }
+    showStatus(msg, "error");
+    console.error("Fetch error:", err);
+  } finally {
+    setLoading(false);
+  }
+}
+
+// Allow Enter key to trigger generation from inputs
+document.addEventListener("keydown", function(e) {
+  if (e.key === "Enter" && e.target.tagName === "INPUT") {
+    generateNames();
+  }
+});
+
+// Delegated click handler for copy buttons in the results table.
+// Using data-copy attribute avoids inline onclick and XSS risks.
+document.addEventListener("click", function(e) {
+  const btn = e.target.closest(".copy-btn[data-copy]");
+  if (btn) {
+    copyText(btn.dataset.copy);
+  }
+});
+</script>
+</body>
+</html>
