@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>游戏名称一键生成工具</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: #f0f2f5;
+      color: #222;
+      min-height: 100vh;
+    }
+    header {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%);
+      color: #fff;
+      padding: 28px 32px 20px;
+    }
+    header h1 { font-size: 1.7rem; font-weight: 700; letter-spacing: 1px; }
+    header p  { font-size: 0.92rem; opacity: 0.75; margin-top: 6px; }
+    .container { max-width: 900px; margin: 32px auto; padding: 0 16px 60px; }
+
+    /* Card */
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.08);
+      padding: 28px 32px;
+      margin-bottom: 24px;
+    }
+    .card h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #1a1a2e;
+      margin-bottom: 18px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #e8eaf6;
+    }
+
+    /* Form */
+    .form-group { margin-bottom: 16px; }
+    label {
+      display: block;
+      font-size: 0.87rem;
+      font-weight: 600;
+      color: #444;
+      margin-bottom: 6px;
+    }
+    label span.hint {
+      font-weight: 400;
+      color: #888;
+      font-size: 0.82rem;
+    }
+    input[type="text"], input[type="password"], textarea, select {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1.5px solid #d0d5dd;
+      border-radius: 8px;
+      font-size: 0.93rem;
+      transition: border-color .2s;
+      background: #fafafa;
+    }
+    input[type="text"]:focus, input[type="password"]:focus,
+    textarea:focus, select:focus {
+      outline: none;
+      border-color: #4a90e2;
+      background: #fff;
+    }
+    textarea { resize: vertical; min-height: 70px; }
+
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 600px) { .row-2 { grid-template-columns: 1fr; } }
+
+    /* API settings collapsible */
+    details summary {
+      cursor: pointer;
+      font-size: 0.93rem;
+      font-weight: 600;
+      color: #4a90e2;
+      user-select: none;
+      padding: 6px 0;
+    }
+    details[open] summary { margin-bottom: 14px; }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 12px 28px;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity .18s, transform .1s;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-primary { background: #4a90e2; color: #fff; }
+    .btn-primary:hover:not(:disabled) { opacity: .88; }
+    .btn-secondary { background: #e8eaf6; color: #1a1a2e; }
+    .btn-secondary:hover:not(:disabled) { background: #d8dcf0; }
+    .btn-group { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 4px; }
+
+    /* Spinner */
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2.5px solid rgba(255,255,255,.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      display: inline-block;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Error / info banner */
+    .banner {
+      padding: 13px 18px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      margin-bottom: 18px;
+      display: none;
+    }
+    .banner.error   { background: #fff0f0; border: 1px solid #f5c6c6; color: #c0392b; display: block; }
+    .banner.info    { background: #eaf4ff; border: 1px solid #b3d6f7; color: #1565c0; display: block; }
+    .banner.success { background: #eafaf1; border: 1px solid #a9dfbf; color: #1e8449; display: block; }
+
+    /* Results table */
+    .result-table-wrap { overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.87rem;
+      min-width: 700px;
+    }
+    thead tr { background: #1a1a2e; color: #fff; }
+    thead th { padding: 10px 12px; text-align: left; font-weight: 600; white-space: nowrap; }
+    tbody tr:nth-child(even) { background: #f7f8fc; }
+    tbody td { padding: 10px 12px; vertical-align: top; border-bottom: 1px solid #eee; }
+    td.name-cell { font-weight: 700; font-size: 0.95rem; white-space: nowrap; }
+    .pass  { color: #27ae60; font-weight: 600; }
+    .fail  { color: #e74c3c; font-weight: 600; }
+    .warn  { color: #e67e22; font-weight: 600; }
+    .conclusion-pass { background: #eafaf1; color: #1e8449; padding: 3px 9px; border-radius: 20px; font-size: 0.82rem; font-weight: 700; }
+    .conclusion-fail { background: #fef0f0; color: #c0392b; padding: 3px 9px; border-radius: 20px; font-size: 0.82rem; font-weight: 700; }
+
+    /* Raw AI output */
+    .raw-output {
+      background: #1e1e2e;
+      color: #cdd6f4;
+      border-radius: 8px;
+      padding: 18px 20px;
+      font-size: 0.85rem;
+      font-family: "Cascadia Code", "Fira Code", Consolas, monospace;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 420px;
+      overflow-y: auto;
+    }
+
+    /* Usage doc */
+    .doc-section { font-size: 0.9rem; line-height: 1.75; color: #444; }
+    .doc-section h3 { font-size: 1rem; color: #1a1a2e; margin: 16px 0 6px; }
+    .doc-section code {
+      background: #f0f2f5;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 0.85em;
+      color: #c0392b;
+    }
+    .doc-section ul { padding-left: 20px; }
+    .doc-section li { margin-bottom: 4px; }
+    .tag { display: inline-block; background: #e8eaf6; color: #3949ab; border-radius: 4px; padding: 1px 7px; font-size: 0.8rem; font-weight: 600; margin: 2px 2px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🎮 游戏名称一键生成工具</h1>
+  <p>基于 CloseAI 聚合 API · Google Play ASO 合规检测 · 适用于所有 AI 大模型</p>
+</header>
+
+<div class="container">
+
+  <!-- API Settings -->
+  <div class="card">
+    <h2>⚙️ API 配置</h2>
+    <details id="apiDetails" open>
+      <summary>展开 / 收起 API 设置</summary>
+      <div class="form-group">
+        <label>API Base URL <span class="hint">（CloseAI 聚合接口，请勿修改，除非使用自定义代理）</span></label>
+        <input type="text" id="apiBase" value="https://api.openai-proxy.org/v1/chat/completions"
+               placeholder="https://api.openai-proxy.org/v1/chat/completions" />
+      </div>
+      <div class="row-2">
+        <div class="form-group">
+          <label>API Key <span class="hint">（CloseAI / OpenAI 兼容密钥）</span></label>
+          <input type="password" id="apiKey" placeholder="sk-xxxxxxxxxxxxxxxx" autocomplete="off" />
+        </div>
+        <div class="form-group">
+          <label>模型名称 <span class="hint">（任意代理支持的模型均可）</span></label>
+          <input type="text" id="modelName" value="gpt-3.5-turbo"
+                 placeholder="gpt-3.5-turbo / o3-pro / claude-3-5-sonnet / gemini-pro …" />
+        </div>
+      </div>
+      <div style="font-size:0.82rem;color:#888;margin-top:2px;">
+        💡 支持模型示例：<span class="tag">gpt-3.5-turbo</span><span class="tag">gpt-4o</span><span class="tag">o3-pro</span><span class="tag">claude-3-5-sonnet-20241022</span><span class="tag">gemini-1.5-pro</span><span class="tag">deepseek-chat</span> 等所有 CloseAI 聚合支持的模型
+      </div>
+    </details>
+  </div>
+
+  <!-- Game Info Input -->
+  <div class="card">
+    <h2>🎯 游戏信息输入</h2>
+    <div class="form-group">
+      <label>核心玩法 / 品类词 <span class="hint">（例：Casino Slots、Match-3 Puzzle、RPG、Tycoon）</span></label>
+      <input type="text" id="gameplay" placeholder="Casino Slots" />
+    </div>
+    <div class="row-2">
+      <div class="form-group">
+        <label>视觉题材 <span class="hint">（例：中国风、古代战马、水墨画风格）</span></label>
+        <input type="text" id="theme" placeholder="中国风、古代战马" />
+      </div>
+      <div class="form-group">
+        <label>风格 / 情感 <span class="hint">（例：Mystic、Royal、Simple、Rapid）</span></label>
+        <input type="text" id="style" placeholder="Royal、Mystic" />
+      </div>
+    </div>
+    <div class="btn-group">
+      <button class="btn btn-primary" id="generateBtn" onclick="generateNames()">
+        ✨ 一键生成游戏名称
+      </button>
+      <button class="btn btn-secondary" id="clearBtn" onclick="clearResults()">
+        🗑️ 清空结果
+      </button>
+    </div>
+  </div>
+
+  <!-- Status Banner -->
+  <div class="banner" id="banner"></div>
+
+  <!-- Results -->
+  <div class="card" id="resultsCard" style="display:none;">
+    <h2>📋 生成结果 &amp; 合规检测</h2>
+    <div class="result-table-wrap">
+      <table id="resultsTable">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>游戏名称</th>
+            <th>含义说明</th>
+            <th>字符数</th>
+            <th>长度合规<br/><span style="font-weight:400;font-size:0.78rem;">≤30字符</span></th>
+            <th>违禁词<br/><span style="font-weight:400;font-size:0.78rem;">促销/诱导</span></th>
+            <th>博彩词<br/><span style="font-weight:400;font-size:0.78rem;">赌博暗示</span></th>
+            <th>格式<br/><span style="font-weight:400;font-size:0.78rem;">大小写/标点</span></th>
+            <th>人工查重</th>
+            <th>商标检索</th>
+            <th>初步结论</th>
+          </tr>
+        </thead>
+        <tbody id="resultsBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Raw AI Output -->
+  <div class="card" id="rawCard" style="display:none;">
+    <h2>🤖 AI 原始回复</h2>
+    <pre class="raw-output" id="rawOutput"></pre>
+  </div>
+
+  <!-- Usage Documentation -->
+  <div class="card">
+    <h2>📖 使用说明 &amp; API 配置指南</h2>
+    <div class="doc-section">
+
+      <h3>一、CloseAI 聚合 API 配置</h3>
+      <ul>
+        <li><strong>API Base URL：</strong>固定为 <code>https://api.openai-proxy.org/v1/chat/completions</code>，如使用自定义代理请填写对应地址。</li>
+        <li><strong>API Key：</strong>在 <a href="https://api.openai-proxy.org" target="_blank">api.openai-proxy.org</a> 注册后获取，格式为 <code>sk-xxxxxxxx</code>。</li>
+        <li><strong>模型名称：</strong>填写代理平台支持的任意模型 ID，例如 <code>gpt-4o</code>、<code>o3-pro</code>、<code>claude-3-5-sonnet-20241022</code>、<code>gemini-1.5-pro</code>、<code>deepseek-chat</code> 等。</li>
+      </ul>
+
+      <h3>二、请求格式（ChatCompletion 标准）</h3>
+      <p>本工具发出的请求体格式为标准 OpenAI ChatCompletion 格式：</p>
+      <pre style="background:#f0f2f5;padding:12px 16px;border-radius:8px;font-size:0.83rem;margin-top:8px;overflow-x:auto;">POST https://api.openai-proxy.org/v1/chat/completions
+Authorization: Bearer &lt;your-api-key&gt;
+Content-Type: application/json
+
+{
+  "model": "gpt-3.5-turbo",
+  "messages": [
+    { "role": "user", "content": "&lt;生成的 Prompt&gt;" }
+  ]
+}</pre>
+
+      <h3>三、等效 cURL 示例</h3>
+      <pre style="background:#1e1e2e;color:#cdd6f4;padding:12px 16px;border-radius:8px;font-size:0.83rem;margin-top:8px;overflow-x:auto;">curl https://api.openai-proxy.org/v1/chat/completions \
+  -H "Authorization: Bearer sk-xxxxxxxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-3.5-turbo",
+    "messages": [{"role": "user", "content": "你好"}]
+  }'</pre>
+
+      <h3>四、合规自动检测规则</h3>
+      <ul>
+        <li>✅ <strong>字符长度</strong>：包含空格必须 ≤ 30 字符</li>
+        <li>✅ <strong>促销/诱导词检测</strong>：禁止出现 Best、Top、New、Free、Sale、NoAds、Hot、Fire、Download、Update</li>
+        <li>✅ <strong>博彩高风险词检测</strong>：禁止出现 Win Money、Cash、Bet（作为独立词）</li>
+        <li>✅ <strong>格式检测</strong>：禁止全大写、禁止 Emoji、禁止连续标点（!! ?? *** 等）</li>
+        <li>⚠️ <strong>人工查重</strong>：需在 Google Play 手动搜索确认无完全重名</li>
+        <li>⚠️ <strong>商标检索</strong>：需在 WIPO Global Brand Database 检索特有名词</li>
+      </ul>
+
+      <h3>五、注意事项</h3>
+      <ul>
+        <li>API Key 仅保存在浏览器本地，不会上传至任何服务器。</li>
+        <li>AI 生成结果可能存在幻觉（如字符数计算有误），请结合自动检测结果人工复核。</li>
+        <li>本工具仅进行初步合规筛查，Google Play 查重和 WIPO 商标检索需人工完成。</li>
+      </ul>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // ─── Constants ───────────────────────────────────────────────────────────────
+
+  const BANNED_PROMO    = ['best','top','new','free','sale','noads','hot','fire','download','update'];
+  const BANNED_GAMBLING = ['win money','cash','bet'];
+
+  // Pre-compiled regex objects for performance
+  const BANNED_PROMO_RES    = BANNED_PROMO.map(w => new RegExp('\\b' + w.replace(' ', '\\s+') + '\\b', 'i'));
+  const BANNED_GAMBLING_RES = BANNED_GAMBLING.map(w => new RegExp('\\b' + w.replace(' ', '\\s+') + '\\b', 'i'));
+
+  const CONSECUTIVE_PUNCT  = /[!?*]{2,}|\.{3,}/;
+  const ALL_CAPS_WORD      = /\b[A-Z]{3,}\b/; // 3+ consecutive uppercase letters
+  const EMOJI_RE           = /\p{Emoji_Presentation}|\p{Extended_Pictographic}/u;
+
+  // Upper bound for names extracted from AI output (sane sanity check, not a Google Play limit)
+  const MAX_PARSED_NAME_LENGTH = 60;
+
+  // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+  function showBanner(msg, type) {
+    const el = document.getElementById('banner');
+    el.textContent = msg;
+    el.className = 'banner ' + type;
+  }
+  function hideBanner() {
+    document.getElementById('banner').className = 'banner';
+  }
+
+  function setLoading(loading) {
+    const btn = document.getElementById('generateBtn');
+    if (loading) {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> 正在生成，请稍候…';
+    } else {
+      btn.disabled = false;
+      btn.innerHTML = '✨ 一键生成游戏名称';
+    }
+  }
+
+  // ─── Compliance check for a single name ──────────────────────────────────────
+
+  function checkName(name) {
+    const lower = name.toLowerCase();
+
+    // 1. Length
+    const charCount = name.length;
+    const lengthOk = charCount <= 30;
+
+    // 2. Banned promo / lure words (word-boundary check)
+    const foundPromo = BANNED_PROMO.filter((_, i) => BANNED_PROMO_RES[i].test(name));
+
+    // 3. Banned gambling words
+    const foundGambling = BANNED_GAMBLING.filter((_, i) => BANNED_GAMBLING_RES[i].test(name));
+
+    // 4. Format checks
+    const hasAllCaps    = ALL_CAPS_WORD.test(name);
+    const hasEmoji      = EMOJI_RE.test(name);
+    const hasConsecPunct = CONSECUTIVE_PUNCT.test(name);
+    const formatOk = !hasAllCaps && !hasEmoji && !hasConsecPunct;
+
+    const promoOk    = foundPromo.length === 0;
+    const gamblingOk = foundGambling.length === 0;
+
+    const overallPass = lengthOk && promoOk && gamblingOk && formatOk;
+
+    return {
+      charCount, lengthOk,
+      promoOk, foundPromo,
+      gamblingOk, foundGambling,
+      formatOk, hasAllCaps, hasEmoji, hasConsecPunct,
+      overallPass
+    };
+  }
+
+  // ─── Parse AI response into name list ────────────────────────────────────────
+
+  function parseAINames(text) {
+    const results = [];
+    // Match lines like: "1. Name Here - explanation" or "1. **Name** - explanation"
+    const lineRe = /^\s*\d+[\.\)、]\s+\*{0,2}([^\*\n]+?)\*{0,2}\s*[-–—:：]\s*(.+)/gm;
+    let m;
+    while ((m = lineRe.exec(text)) !== null) {
+      const name = m[1].trim();
+      const desc = m[2].trim();
+      if (name.length > 0 && name.length <= MAX_PARSED_NAME_LENGTH) {
+        results.push({ name, desc });
+      }
+    }
+
+    // Fallback: look for quoted names with optional description
+    if (results.length === 0) {
+      const quoteRe = /["「"']([\w\s\-]+)["」"']\s*[-–—:：]?\s*([^\n]*)/g;
+      while ((m = quoteRe.exec(text)) !== null) {
+        const name = m[1].trim();
+        const desc = m[2].trim();
+        if (name.length > 1 && name.length <= MAX_PARSED_NAME_LENGTH) {
+          results.push({ name, desc });
+        }
+      }
+    }
+
+    return results;
+  }
+
+  // ─── Render results table ─────────────────────────────────────────────────────
+
+  function renderResults(names) {
+    const tbody = document.getElementById('resultsBody');
+    tbody.innerHTML = '';
+    if (names.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;color:#999;padding:24px;">未能从 AI 回复中解析出游戏名称，请查看下方原始回复。</td></tr>';
+      document.getElementById('resultsCard').style.display = '';
+      return;
+    }
+
+    names.forEach((item, i) => {
+      const c = checkName(item.name);
+      const row = document.createElement('tr');
+
+      const promoTip = c.foundPromo.length ? '包含：' + c.foundPromo.join(', ') : '';
+      const gambTip  = c.foundGambling.length ? '包含：' + c.foundGambling.join(', ') : '';
+      let fmtTip = [];
+      if (c.hasAllCaps)     fmtTip.push('含全大写词');
+      if (c.hasEmoji)       fmtTip.push('含Emoji');
+      if (c.hasConsecPunct) fmtTip.push('含连续标点');
+
+      row.innerHTML = `
+        <td>${i + 1}</td>
+        <td class="name-cell">${escHtml(item.name)}</td>
+        <td>${escHtml(item.desc)}</td>
+        <td style="text-align:center;">${c.charCount}</td>
+        <td style="text-align:center;">
+          ${c.lengthOk
+            ? '<span class="pass">✅ 通过</span>'
+            : `<span class="fail">❌ 超长(${c.charCount})</span>`}
+        </td>
+        <td style="text-align:center;">
+          ${c.promoOk
+            ? '<span class="pass">✅ 通过</span>'
+            : `<span class="fail" title="${escHtml(promoTip)}">❌ 不通过</span>`}
+        </td>
+        <td style="text-align:center;">
+          ${c.gamblingOk
+            ? '<span class="pass">✅ 通过</span>'
+            : `<span class="fail" title="${escHtml(gambTip)}">❌ 不通过</span>`}
+        </td>
+        <td style="text-align:center;">
+          ${c.formatOk
+            ? '<span class="pass">✅ 通过</span>'
+            : `<span class="fail" title="${escHtml(fmtTip.join('、'))}">❌ 不通过</span>`}
+        </td>
+        <td style="text-align:center;"><span class="warn">⚠️ 待核验</span></td>
+        <td style="text-align:center;"><span class="warn">⚠️ 待核验</span></td>
+        <td style="text-align:center;">
+          ${c.overallPass
+            ? '<span class="conclusion-pass">初步可用</span>'
+            : '<span class="conclusion-fail">需修改/弃用</span>'}
+        </td>`;
+      tbody.appendChild(row);
+    });
+
+    document.getElementById('resultsCard').style.display = '';
+  }
+
+  function escHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  // ─── Build prompt ─────────────────────────────────────────────────────────────
+
+  function buildPrompt(gameplay, theme, style) {
+    return `角色设定：你是一位精通 Google Play ASO（应用商店优化）和合规政策的资深游戏运营专家。
+任务：请为我的一款即将上架 Google Play 的游戏构思 10 个英文名称。
+游戏背景：
+- 核心玩法：${gameplay}
+- 视觉题材：${theme}
+- 风格/情感：${style}
+
+⚠️ 绝对限制条件（必须遵守）：
+1. 长度限制：包含空格必须严格控制在 30 个字符（字母）以内。
+2. 违禁词屏蔽：严禁出现 "Best", "Top", "New", "Free", "Sale", "NoAds", "Win Money", "Cash", "Bet", "Hot", "Fire", "Download", "Update" 等促销或高风险词汇。
+3. 格式规范：首字母大写即可，严禁全大写，严禁使用 Emoji 或连续标点（如 !!, ??）。
+4. 无版权风险：不要使用知名 IP（如 Disney, Marvel）或受保护的名词。
+
+输出要求：
+请按照以下格式列出 10 个名字：
+1. 名称 - 含义说明（字符数：X）
+2. 名称 - 含义说明（字符数：X）
+……以此类推。`;
+  }
+
+  // ─── Main generate function ───────────────────────────────────────────────────
+
+  async function generateNames() {
+    hideBanner();
+
+    const apiBase  = document.getElementById('apiBase').value.trim();
+    const apiKey   = document.getElementById('apiKey').value.trim();
+    const model    = document.getElementById('modelName').value.trim();
+    const gameplay = document.getElementById('gameplay').value.trim();
+    const theme    = document.getElementById('theme').value.trim();
+    const style    = document.getElementById('style').value.trim();
+
+    // Validation
+    if (!apiBase)  return showBanner('❌ 请填写 API Base URL。', 'error');
+    if (!apiKey)   return showBanner('❌ 请填写 API Key。', 'error');
+    if (!model)    return showBanner('❌ 请填写模型名称。', 'error');
+    if (!gameplay) return showBanner('❌ 请填写"核心玩法/品类词"。', 'error');
+    if (!theme)    return showBanner('❌ 请填写"视觉题材"。', 'error');
+    if (!style)    return showBanner('❌ 请填写"风格/情感"。', 'error');
+
+    setLoading(true);
+    document.getElementById('resultsCard').style.display = 'none';
+    document.getElementById('rawCard').style.display = 'none';
+
+    const prompt = buildPrompt(gameplay, theme, style);
+
+    const requestBody = {
+      model: model,
+      messages: [
+        { role: 'user', content: prompt }
+      ]
+    };
+
+    try {
+      const response = await fetch(apiBase, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + apiKey
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      if (!response.ok) {
+        let errMsg = `HTTP ${response.status}`;
+        try {
+          const errData = await response.json();
+          if (errData.error && errData.error.message) {
+            errMsg += '：' + errData.error.message;
+          }
+        } catch (_) { /* ignore */ }
+        throw new Error(errMsg);
+      }
+
+      const data = await response.json();
+      const aiText = data?.choices?.[0]?.message?.content || '';
+
+      if (!aiText) {
+        throw new Error('AI 返回内容为空，请检查模型名称或账户余额。');
+      }
+
+      // Show raw output
+      document.getElementById('rawOutput').textContent = aiText;
+      document.getElementById('rawCard').style.display = '';
+
+      // Parse and render
+      const names = parseAINames(aiText);
+      renderResults(names);
+
+      showBanner(`✅ 生成成功！共解析出 ${names.length} 个游戏名称，已完成自动合规检测。人工查重及商标检索请手动完成。`, 'success');
+
+    } catch (err) {
+      showBanner('❌ 请求失败：' + err.message + '。请检查 API Key、模型名称及网络连接。', 'error');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ─── Clear results ────────────────────────────────────────────────────────────
+
+  function clearResults() {
+    hideBanner();
+    document.getElementById('resultsCard').style.display = 'none';
+    document.getElementById('rawCard').style.display = 'none';
+    document.getElementById('resultsBody').innerHTML = '';
+    document.getElementById('rawOutput').textContent = '';
+  }
+</script>
+
+</body>
+</html>
