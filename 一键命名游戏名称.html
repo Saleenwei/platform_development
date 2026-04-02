@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>一键生成游戏名称工具</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #121933;
+      --panel-2: #1a2347;
+      --text: #eef2ff;
+      --muted: #9aa6d1;
+      --line: #2c376b;
+      --primary: #6ea8fe;
+      --primary-2: #89b4ff;
+      --success: #21c77a;
+      --warning: #ffb020;
+      --danger: #ff5d73;
+      --tag: #24305e;
+      --shadow: 0 10px 30px rgba(0,0,0,.25);
+      --radius: 16px;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC",
+        "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+      background: linear-gradient(180deg, #0a0f1f 0%, #0d1430 100%);
+      color: var(--text);
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .header {
+      margin-bottom: 20px;
+    }
+
+    .title {
+      font-size: 28px;
+      font-weight: 800;
+      margin: 0 0 8px;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 20px;
+    }
+
+    .card {
+      background: rgba(18, 25, 51, .96);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .card .card-header {
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255,255,255,0.02);
+    }
+
+    .card .card-header h2 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .card .card-body {
+      padding: 18px;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+      color: #d9e1ff;
+      font-weight: 600;
+    }
+
+    input[type="text"], input[type="password"], textarea, select {
+      width: 100%;
+      border: 1px solid var(--line);
+      background: #0f1735;
+      color: var(--text);
+      border-radius: 12px;
+      padding: 12px 14px;
+      outline: none;
+      font-size: 14px;
+      transition: .2s ease;
+    }
+
+    input[type="text"]:focus,
+    input[type="password"]:focus,
+    textarea:focus,
+    select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(110,168,254,.18);
+    }
+
+    select option {
+      background: #0f1735;
+      color: var(--text);
+    }
+
+    textarea {
+      min-height: 88px;
+      resize: vertical;
+    }
+
+    .helper {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    /* Model selector group */
+    .model-selector-group {
+      display: flex;
+      gap: 8px;
+      align-items: stretch;
+    }
+
+    .model-selector-group select {
+      flex: 0 0 auto;
+      width: auto;
+      min-width: 160px;
+      border-radius: 12px 0 0 12px;
+      border-right: none;
+      background: #131c45;
+      cursor: pointer;
+      appearance: auto;
+    }
+
+    .model-selector-group select:focus {
+      border-color: var(--primary);
+      box-shadow: none;
+      z-index: 1;
+    }
+
+    .model-selector-group input[type="text"] {
+      flex: 1 1 auto;
+      border-radius: 0 12px 12px 0;
+    }
+
+    .model-quick-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .model-chip {
+      background: #1a2650;
+      border: 1px solid #2e4080;
+      color: #b8c9ff;
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      cursor: pointer;
+      user-select: none;
+      transition: .15s ease;
+      white-space: nowrap;
+    }
+
+    .model-chip:hover {
+      background: #243070;
+      border-color: var(--primary);
+      color: var(--primary-2);
+    }
+
+    .model-chip.active {
+      background: rgba(110,168,254,.18);
+      border-color: var(--primary);
+      color: var(--primary-2);
+    }
+
+    .row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 12px;
+      padding: 12px 16px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 700;
+      transition: .2s ease;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--primary-2));
+      color: #081225;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.05);
+    }
+
+    .btn-primary:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+      transform: none;
+      filter: none;
+    }
+
+    .btn-secondary {
+      background: #1a2347;
+      color: var(--text);
+      border: 1px solid var(--line);
+    }
+
+    .btn-secondary:hover {
+      background: #212d5a;
+    }
+
+    .btn-danger {
+      background: #3a1830;
+      color: #ffdbe2;
+      border: 1px solid #6f274e;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .chip {
+      background: var(--tag);
+      border: 1px solid #33427d;
+      color: #dce5ff;
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 12px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .chip:hover {
+      background: #2c3970;
+    }
+
+    .result-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .summary {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border-radius: 12px;
+    }
+
+    thead th {
+      text-align: left;
+      font-size: 12px;
+      color: #c5d0fb;
+      padding: 12px 10px;
+      background: #16214a;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+
+    tbody td {
+      padding: 12px 10px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+      vertical-align: top;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    tbody tr:hover {
+      background: rgba(255,255,255,.02);
+    }
+
+    .name-cell {
+      font-weight: 700;
+      color: #fff;
+      font-size: 15px;
+    }
+
+    .tag {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 4px 8px;
+      font-size: 12px;
+      font-weight: 700;
+      margin-right: 6px;
+      margin-bottom: 6px;
+      white-space: nowrap;
+    }
+
+    .tag-ok {
+      background: rgba(33,199,122,.14);
+      color: #77f0b2;
+      border: 1px solid rgba(33,199,122,.35);
+    }
+
+    .tag-warn {
+      background: rgba(255,176,32,.14);
+      color: #ffd27a;
+      border: 1px solid rgba(255,176,32,.35);
+    }
+
+    .tag-bad {
+      background: rgba(255,93,115,.14);
+      color: #ff9aaa;
+      border: 1px solid rgba(255,93,115,.35);
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .checklist {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .check-item {
+      border: 1px solid var(--line);
+      background: #10183a;
+      border-radius: 12px;
+      padding: 12px;
+    }
+
+    .check-item h4 {
+      margin: 0 0 8px;
+      font-size: 14px;
+    }
+
+    .check-item p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .footer-note {
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.7;
+    }
+
+    .empty {
+      border: 1px dashed #425090;
+      border-radius: 12px;
+      padding: 28px;
+      text-align: center;
+      color: var(--muted);
+      background: rgba(255,255,255,.02);
+    }
+
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+    }
+
+    .loading-spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .api-notice {
+      background: rgba(110,168,254,.08);
+      border: 1px solid rgba(110,168,254,.25);
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-size: 12px;
+      color: #b8caff;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 980px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+      .checklist {
+        grid-template-columns: 1fr;
+      }
+      .model-selector-group select {
+        min-width: 130px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 class="title">一键生成游戏名称工具</h1>
+      <div class="subtitle">
+        用于根据"核心玩法 + 视觉题材 + 风格情感"快速生成英文游戏名称，并自动完成标题基础合规检查。
+      </div>
+    </div>
+
+    <div class="grid">
+      <!-- 左侧输入区 -->
+      <div class="card">
+        <div class="card-header">
+          <h2>输入参数</h2>
+        </div>
+        <div class="card-body">
+
+          <!-- API Base URL -->
+          <div class="form-group">
+            <label for="apiBaseUrl">API Base URL</label>
+            <input id="apiBaseUrl" type="text" value="https://api.openai.com/v1" placeholder="https://api.openai.com/v1" />
+            <div class="helper">使用 OpenRouter、LiteLLM 等兼容网关时，在此填写对应地址（需支持 OpenAI 兼容接口）。</div>
+          </div>
+
+          <!-- API Key -->
+          <div class="form-group">
+            <label for="apiKey">API Key</label>
+            <input id="apiKey" type="password" placeholder="sk-..." autocomplete="off" />
+            <div class="helper">Key 仅在本地浏览器使用，不会上传至任何服务器。</div>
+          </div>
+
+          <!-- 模型名称 -->
+          <div class="form-group">
+            <label for="modelInput">模型名称</label>
+            <div class="model-selector-group">
+              <select id="modelSelect" onchange="onModelSelectChange(this.value)">
+                <option value="">— 选择预设 —</option>
+                <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
+                <option value="gpt-4.1-mini">gpt-4.1-mini</option>
+                <option value="o3-pro">o3-pro</option>
+                <option value="claude-3-sonnet-20240229">claude-3-sonnet-20240229</option>
+                <option value="gemini-1.5-flash">gemini-1.5-flash</option>
+                <option value="qwen-max">qwen-max</option>
+              </select>
+              <input id="modelInput" type="text" placeholder="或自定义填写模型名" value="gpt-4.1-mini" oninput="onModelInputChange(this.value)" />
+            </div>
+            <!-- 快捷模型芯片 -->
+            <div class="model-quick-chips" id="modelChips">
+              <span class="model-chip" onclick="setModel('gpt-3.5-turbo')">gpt-3.5-turbo</span>
+              <span class="model-chip active" onclick="setModel('gpt-4.1-mini')">gpt-4.1-mini</span>
+              <span class="model-chip" onclick="setModel('o3-pro')">o3-pro</span>
+              <span class="model-chip" onclick="setModel('claude-3-sonnet-20240229')">claude-3-sonnet-20240229</span>
+              <span class="model-chip" onclick="setModel('gemini-1.5-flash')">gemini-1.5-flash</span>
+              <span class="model-chip" onclick="setModel('qwen-max')">qwen-max</span>
+            </div>
+            <div class="helper">从下拉选择常用模型，或在文本框直接填写自定义模型名。</div>
+          </div>
+
+          <div class="form-group">
+            <label for="gameplay">核心玩法</label>
+            <input id="gameplay" type="text" placeholder="例如：Casino Slots / Puzzle / RPG / Tycoon" value="Casino Slots" />
+            <div class="helper">建议填写明确品类词，如 Slots、Puzzle、RPG、Tycoon。</div>
+          </div>
+
+          <div class="form-group">
+            <label for="theme">视觉题材</label>
+            <textarea id="theme" placeholder="例如：中国风、古代战马、水墨画风格">中国风、古代战马、水墨画风格</textarea>
+            <div class="helper">建议填写核心视觉或世界观元素，如 Horse、Dynasty、Jade、Dragon。</div>
+          </div>
+
+          <div class="form-group">
+            <label for="style">风格 / 情感</label>
+            <input id="style" type="text" placeholder="例如：Mystic, Royal, Simple, Rapid" value="Royal, Mystic" />
+            <div class="helper">传达你想给用户的感受，如 Mystic、Royal、Elegant、Rapid。</div>
+          </div>
+
+          <div class="form-group">
+            <label for="count">生成数量</label>
+            <select id="count">
+              <option value="10" selected>10 个</option>
+              <option value="8">8 个</option>
+              <option value="12">12 个</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>快捷示例</label>
+            <div class="chips">
+              <div class="chip" onclick="fillExample('Casino Slots', '中国风、古代战马、水墨画风格', 'Royal, Mystic')">中国战马 Slots</div>
+              <div class="chip" onclick="fillExample('Puzzle', '玉石、东方神殿、机关谜题', 'Simple, Elegant')">东方玉石 Puzzle</div>
+              <div class="chip" onclick="fillExample('RPG', '龙、王朝、古城、史诗冒险', 'Epic, Mystic')">王朝巨龙 RPG</div>
+              <div class="chip" onclick="fillExample('Tycoon', '港口、贸易、船队、金币', 'Classic, Rapid')">贸易港口 Tycoon</div>
+            </div>
+          </div>
+
+          <div class="row">
+            <button class="btn btn-primary" id="generateBtn" onclick="generateNames()">一键生成名称</button>
+            <button class="btn btn-secondary" onclick="copyResults()">复制结果</button>
+            <button class="btn btn-danger" onclick="resetForm()">清空</button>
+          </div>
+
+          <div class="api-notice" style="margin-top:14px;">
+            说明：本工具通过 OpenAI 兼容 API 调用所选模型生成游戏名称。API Key 仅在浏览器本地使用。
+            如需使用 Claude、Gemini、Qwen 等模型，请将 API Base URL 改为支持 OpenAI 兼容接口的代理地址（如 OpenRouter、LiteLLM 等）。
+          </div>
+        </div>
+      </div>
+
+      <!-- 右侧结果区 -->
+      <div class="card">
+        <div class="card-header">
+          <h2>生成结果</h2>
+        </div>
+        <div class="card-body">
+          <div class="result-topbar">
+            <div class="summary" id="summaryText">尚未生成结果</div>
+          </div>
+
+          <div id="resultWrapper">
+            <div class="empty">
+              请在左侧填写参数后，点击 <strong>"一键生成名称"</strong>。
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Checklist -->
+    <div class="card" style="margin-top:20px;">
+      <div class="card-header">
+        <h2>标题（游戏名称）Checklist</h2>
+      </div>
+      <div class="card-body">
+        <div class="checklist">
+          <div class="check-item">
+            <h4>1. 长度限制</h4>
+            <p>标题包含空格在内必须 ≤ 30 字符。建议优先控制在 15–20 字符，更适合移动端展示。</p>
+          </div>
+          <div class="check-item">
+            <h4>2. 违禁词屏蔽</h4>
+            <p>禁止出现 Best、Top、New、Free、Sale、NoAds、Win Money、Cash、Bet 等词。</p>
+          </div>
+          <div class="check-item">
+            <h4>3. 格式规范</h4>
+            <p>首字母大写即可，不允许全大写；不允许 Emoji、连续标点、异常特殊符号。</p>
+          </div>
+          <div class="check-item">
+            <h4>4. 诱导词检查</h4>
+            <p>禁止出现 Hot、Fire、Download、Update 等诱导性词汇。</p>
+          </div>
+          <div class="check-item">
+            <h4>5. 赌博误导风险</h4>
+            <p>标题不得让人误解为"可真实赢钱"，避免现金、提现、赚钱等暗示。</p>
+          </div>
+          <div class="check-item">
+            <h4>6. 人工核验项</h4>
+            <p>Google Play 查重、近似名称排查、WIPO 商标检索必须人工完成。</p>
+          </div>
+        </div>
+
+        <div class="footer-note">
+          建议流程：先用本工具生成候选标题 → 机器初筛 → 人工完成商店查重和商标检索 → 最终填写物料表。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ───────────── 预设模型列表（与下拉选项保持一致） ───────────── */
+    const PRESET_MODELS = [
+      "gpt-3.5-turbo",
+      "gpt-4.1-mini",
+      "o3-pro",
+      "claude-3-sonnet-20240229",
+      "gemini-1.5-flash",
+      "qwen-max"
+    ];
+
+    /* ───────────── 模型选择联动逻辑 ───────────── */
+    function setModel(modelName) {
+      document.getElementById("modelInput").value = modelName;
+      syncDropdownToInput(modelName);
+      updateModelChips(modelName);
+    }
+
+    function onModelSelectChange(value) {
+      if (value) {
+        document.getElementById("modelInput").value = value;
+        updateModelChips(value);
+      }
+    }
+
+    function onModelInputChange(value) {
+      syncDropdownToInput(value);
+      updateModelChips(value);
+    }
+
+    function syncDropdownToInput(value) {
+      const sel = document.getElementById("modelSelect");
+      const trimmed = value.trim();
+      let matched = false;
+      for (const opt of sel.options) {
+        if (opt.value === trimmed) {
+          sel.value = trimmed;
+          matched = true;
+          break;
+        }
+      }
+      if (!matched) sel.value = "";
+    }
+
+    function updateModelChips(value) {
+      const chips = document.querySelectorAll(".model-chip");
+      chips.forEach(chip => {
+        const chipModel = chip.getAttribute("onclick").match(/setModel\('(.+?)'\)/)[1];
+        chip.classList.toggle("active", chipModel === value.trim());
+      });
+    }
+
+    /* ───────────── 合规检查词库 ───────────── */
+    const bannedWords = [
+      "best", "top", "new", "free", "sale", "noads",
+      "win money", "cash", "bet"
+    ];
+
+    const induciveWords = [
+      "hot", "fire", "download", "update"
+    ];
+
+    const gamblingRiskWords = [
+      "win money", "cash", "bet", "real money", "payout", "reward cash"
+    ];
+
+    const knownIpWords = [
+      "disney", "marvel", "pokemon", "naruto", "dc", "star wars"
+    ];
+
+    /* ───────────── 合规检查 ───────────── */
+    function validateName(name) {
+      const lower = name.toLowerCase();
+      const charCount = name.length;
+      const hasBanned = bannedWords.some(w => lower.includes(w));
+      const hasInducive = induciveWords.some(w => lower.includes(w));
+      const hasGamblingRisk = gamblingRiskWords.some(w => lower.includes(w));
+      const hasIpRisk = knownIpWords.some(w => lower.includes(w));
+      const hasDash = name.includes("-");
+      const hasSpecial = /[!@#$%^&*_=+\[\]{};:"\\|<>\/~`]|(\?\?)|(\!\!)/.test(name);
+      const hasEmoji = /[\u{1F300}-\u{1FAFF}]/u.test(name);
+      const isAllUpper = name === name.toUpperCase() && /[A-Z]/.test(name);
+
+      const issues = [];
+      if (charCount > 30) issues.push("超过30字符");
+      if (hasBanned) issues.push("含违禁词");
+      if (hasInducive) issues.push("含诱导词");
+      if (hasGamblingRisk) issues.push("含博彩高风险词");
+      if (hasIpRisk) issues.push("含IP/商标高风险词");
+      if (hasDash) issues.push("含短破折号");
+      if (hasSpecial || hasEmoji) issues.push("含特殊字符/Emoji");
+      if (isAllUpper) issues.push("全大写格式不合规");
+
+      const passed = issues.length === 0;
+      return { charCount, passed, issues };
+    }
+
+    /* ───────────── 快捷示例 ───────────── */
+    function fillExample(gameplay, theme, style) {
+      document.getElementById("gameplay").value = gameplay;
+      document.getElementById("theme").value = theme;
+      document.getElementById("style").value = style;
+    }
+
+    /* ───────────── 清空表单 ───────────── */
+    function resetForm() {
+      document.getElementById("gameplay").value = "";
+      document.getElementById("theme").value = "";
+      document.getElementById("style").value = "";
+      document.getElementById("count").value = "10";
+      document.getElementById("summaryText").textContent = "尚未生成结果";
+      document.getElementById("resultWrapper").innerHTML = `
+        <div class="empty">
+          请在左侧填写参数后，点击 <strong>"一键生成名称"</strong>。
+        </div>
+      `;
+    }
+
+    /* ───────────── 调用 AI API 生成名称 ───────────── */
+    async function callAI(apiKey, apiBaseUrl, model, gameplay, theme, style, count) {
+      const systemPrompt = `You are a professional mobile game title naming expert. Your job is to create English game titles that comply with app store (Google Play / App Store) policies.
+
+Rules for generated titles:
+1. Must be English only, no Chinese characters.
+2. Length: ≤ 30 characters (including spaces). Prefer 10–20 characters.
+3. Title case (capitalize the first letter of each word).
+4. No ALL CAPS words (except well-known abbreviations like RPG).
+5. No emojis, special characters (!@#$%&*), or hyphens.
+6. No banned words: best, top, new, free, sale, noads, cash, bet, win money.
+7. No inductive words: hot, fire, download, update.
+8. No IP/trademark words: disney, marvel, pokemon, naruto, dc, star wars.
+9. Must not imply real-money gambling or cash prizes.
+10. Should reflect the gameplay type, visual theme, and style/emotion provided.`;
+
+      const userPrompt = `Generate exactly ${count} English game title candidates for a mobile game with the following attributes:
+- Core Gameplay: ${gameplay}
+- Visual Theme: ${theme}
+- Style/Emotion: ${style}
+
+Return ONLY a JSON array of title strings, no explanations. Example format:
+["Title One", "Title Two", "Title Three"]`;
+
+      const baseUrl = apiBaseUrl.replace(/\/+$/, "");
+      const response = await fetch(`${baseUrl}/chat/completions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: model,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt }
+          ],
+          temperature: 0.9,
+          max_tokens: 800
+        })
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        const msg = errData?.error?.message || `HTTP ${response.status}`;
+        throw new Error(msg);
+      }
+
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content || "[]";
+
+      // Extract JSON array from the response
+      const match = content.match(/\[[\s\S]*\]/);
+      if (!match) throw new Error("AI 返回格式错误，未能解析名称列表。");
+      return JSON.parse(match[0]);
+    }
+
+    /* ───────────── 渲染结果表格 ───────────── */
+    function renderResults(names) {
+      if (!names.length) {
+        document.getElementById("resultWrapper").innerHTML = `
+          <div class="empty">未生成可用结果，请尝试调整输入参数后重新生成。</div>
+        `;
+        return;
+      }
+
+      const results = names.map(name => ({
+        name,
+        ...validateName(name)
+      }));
+
+      document.getElementById("summaryText").textContent =
+        `已生成 ${results.length} 个候选名称（仅完成机器初筛，Google Play 查重与商标检索仍需人工核验）`;
+
+      const rows = results.map((item, index) => {
+        const status = item.passed
+          ? `<span class="tag tag-ok">初步可用</span>`
+          : `<span class="tag tag-bad">需修改</span>`;
+
+        const lenTag = item.charCount <= 20
+          ? `<span class="tag tag-ok">${item.charCount} 字符</span>`
+          : `<span class="tag tag-warn">${item.charCount} 字符</span>`;
+
+        const issueHtml = item.issues.length
+          ? item.issues.map(i => `<span class="tag tag-bad">${i}</span>`).join("")
+          : `<span class="tag tag-ok">基础检查通过</span>`;
+
+        return `
+          <tr>
+            <td class="muted">${index + 1}</td>
+            <td>
+              <div class="name-cell">${item.name}</div>
+            </td>
+            <td>${lenTag}</td>
+            <td>${issueHtml}</td>
+            <td>
+              ${status}
+              <div style="margin-top:8px;">
+                <span class="tag tag-warn">待人工查重</span>
+                <span class="tag tag-warn">待商标检索</span>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join("");
+
+      document.getElementById("resultWrapper").innerHTML = `
+        <div style="overflow:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:50px;">序号</th>
+                <th style="width:220px;">名称</th>
+                <th style="width:110px;">字符数</th>
+                <th style="width:260px;">自动检查结果</th>
+                <th style="width:180px;">结论</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    /* ───────────── 主生成函数 ───────────── */
+    async function generateNames() {
+      const apiKey = document.getElementById("apiKey").value.trim();
+      const apiBaseUrl = document.getElementById("apiBaseUrl").value.trim() || "https://api.openai.com/v1";
+      const model = document.getElementById("modelInput").value.trim();
+      const gameplay = document.getElementById("gameplay").value.trim();
+      const theme = document.getElementById("theme").value.trim();
+      const style = document.getElementById("style").value.trim();
+      const count = parseInt(document.getElementById("count").value, 10);
+
+      if (!apiKey) {
+        alert("请先填写 API Key。");
+        return;
+      }
+      if (!model) {
+        alert("请选择或填写模型名称。");
+        return;
+      }
+      if (!gameplay || !theme || !style) {
+        alert("请先完整填写：核心玩法、视觉题材、风格/情感。");
+        return;
+      }
+
+      const btn = document.getElementById("generateBtn");
+      btn.disabled = true;
+      btn.innerHTML = `<span class="loading-spinner"></span>生成中…`;
+
+      document.getElementById("summaryText").textContent = `正在使用 ${model} 生成名称，请稍候…`;
+      document.getElementById("resultWrapper").innerHTML = `
+        <div class="empty">
+          <span class="loading-spinner"></span>AI 正在创作中，请稍候…
+        </div>
+      `;
+
+      try {
+        const names = await callAI(apiKey, apiBaseUrl, model, gameplay, theme, style, count);
+        renderResults(names);
+      } catch (err) {
+        document.getElementById("summaryText").textContent = "生成失败";
+        document.getElementById("resultWrapper").innerHTML = `
+          <div class="empty" style="color:#ff9aaa;">
+            ❌ 生成失败：${err.message}<br/>
+            <span style="font-size:12px;color:var(--muted);">请检查 API Key 是否正确，以及所选模型是否支持 OpenAI 兼容接口。</span>
+          </div>
+        `;
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = "一键生成名称";
+      }
+    }
+
+    /* ───────────── 复制结果 ───────────── */
+    function copyResults() {
+      const table = document.querySelector("#resultWrapper table");
+      if (!table) {
+        alert("暂无可复制结果，请先生成名称。");
+        return;
+      }
+
+      const rows = [...table.querySelectorAll("tbody tr")].map(tr => {
+        const tds = tr.querySelectorAll("td");
+        return [
+          tds[0].innerText.trim(),
+          tds[1].innerText.trim(),
+          tds[2].innerText.trim(),
+          tds[3].innerText.trim().replace(/\n/g, " / "),
+          tds[4].innerText.trim().replace(/\n/g, " / ")
+        ].join("\t");
+      });
+
+      const text = [
+        "序号\t名称\t字符数\t自动检查结果\t结论",
+        ...rows
+      ].join("\n");
+
+      navigator.clipboard.writeText(text)
+        .then(() => alert("结果已复制，可直接粘贴到表格中。"))
+        .catch(() => alert("复制失败，请手动复制。"));
+    }
+
+    /* ───────────── 初始化：同步初始模型值到下拉和芯片 ───────────── */
+    (function init() {
+      const initialModel = document.getElementById("modelInput").value;
+      syncDropdownToInput(initialModel);
+    })();
+  </script>
+</body>
+</html>
